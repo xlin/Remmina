@@ -5,8 +5,7 @@
 		<META NAME="ROBOTS" CONTENT="NOINDEX, NOFOLLOW">
 		<meta http-equiv="refresh" content="5;url=http://www.remmina.org/coming-from-ghpages/index.php">
 		<script type="text/javascript">
-			var ref = encode(document.referrer);
-			console.log(ref);
+			var ref = encodeURI(document.referrer);
 			setTimeout( function() {
 				window.location.href = "http://www.remmina.org/coming-from-ghpages/index.php?ref="+ref;
 			},500);
