@@ -80,4 +80,6 @@ endif()
 
 if(WITH_EXAMPLES)
 	add_subdirectory(tool_hello_world)
+	find_package(PythonLibs 3)
+	add_subdirectory(python_simple)
 endif()
