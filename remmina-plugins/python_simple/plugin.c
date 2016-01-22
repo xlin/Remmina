@@ -60,8 +60,8 @@ static gboolean remmina_plugin_python_simple_open_connection(RemminaProtocolWidg
 	wchar_t *program = Py_DecodeLocale(PLUGIN_NAME, NULL);
 	Py_SetProgramName(program);  /* optional but recommended */
 	Py_Initialize();
-	PyRun_SimpleString("Hello, from time import time,ctime\n"
-			"print('Today is', ctime(time()))\n");
+	PyRun_SimpleString("from time import time,ctime\n"
+			"print('Hello, today is', ctime(time()))\n");
 	Py_Finalize();
 	PyMem_RawFree(program);
 
