@@ -42,6 +42,15 @@
 #endif
 #include <Python.h>
 
+#if PY_VERSION_HEX < 0x03050000
+#define Py_DecodeLocale _Py_char2wchar
+#endif
+
+#if PY_VERSION_HEX < 0x03040000
+#define PyMem_RawMalloc PyMem_Malloc
+#define PyMem_RawFree   PyMem_Free
+#endif
+
 static RemminaPluginService *remmina_plugin_service = NULL;
 
 static void remmina_plugin_python_simple_init(RemminaProtocolWidget *gp)
