@@ -33,23 +33,25 @@
  *
  */
 
+#include "config.h"
+
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <glib/gi18n.h>
 #include <stdlib.h>
-#include "config.h"
-#include "remmina_public.h"
+
+#include "remmina_connection_window.h"
 #include "remmina_file.h"
 #include "remmina_file_manager.h"
 #include "remmina_init_dialog.h"
-#include "remmina_protocol_widget.h"
+#include "remmina_plugin_cmdexec.h"
+#include "remmina_plugin_manager.h"
 #include "remmina_pref.h"
-#include "remmina_preexec.h"
+#include "remmina_protocol_widget.h"
+#include "remmina_public.h"
 #include "remmina_scrolled_viewport.h"
 #include "remmina_widget_pool.h"
-#include "remmina_connection_window.h"
 #include "remmina/remmina_trace_calls.h"
-#include "remmina_plugin_manager.h"
 
 G_DEFINE_TYPE( RemminaConnectionWindow, remmina_connection_window, GTK_TYPE_WINDOW)
 
@@ -139,6 +141,7 @@ struct _RemminaConnectionHolder
 
 	gboolean hostkey_activated;
 	gboolean hostkey_used;
+
 };
 
 enum
@@ -264,13 +267,13 @@ static void remmina_connection_window_class_init(RemminaConnectionWindowClass* k
 
 }
 
-static void remmina_connection_holder_disconnect(RemminaConnectionHolder* cnnhld)
+static void remmina_connection_holder_disconnect_current_page(RemminaConnectionHolder* cnnhld)
 {
-	TRACE_CALL("remmina_connection_holder_disconnect");
+	TRACE_CALL("remmina_connection_holder_disconnect_current_page");
 	DECLARE_CNNOBJ
 
-	/* Notify the RemminaProtocolWidget to disconnect, but not to close the window here.
-	 The window will be destroyed in RemminaProtocolWidget "disconnect" signal */
+	/* Disconnects the connection which is currently in view in the notebook */
+
 	remmina_protocol_widget_close_connection(REMMINA_PROTOCOL_WIDGET(cnnobj->proto));
 }
 
@@ -305,29 +308,14 @@ static void remmina_connection_holder_keyboard_grab(RemminaConnectionHolder* cnn
 	}
 }
 
-static gboolean remmina_connection_window_delete_event(GtkWidget* widget, GdkEvent* event, gpointer data)
+static void remmina_connection_window_close_all_connections(RemminaConnectionWindow* cnnwin)
 {
-	TRACE_CALL("remmina_connection_window_delete_event");
-	RemminaConnectionHolder* cnnhld = (RemminaConnectionHolder*) data;
-	RemminaConnectionWindowPriv* priv = cnnhld->cnnwin->priv;
-	RemminaConnectionObject* cnnobj;
+	RemminaConnectionWindowPriv* priv = cnnwin->priv;
 	GtkNotebook* notebook = GTK_NOTEBOOK(priv->notebook);
-	GtkWidget* dialog;
 	GtkWidget* w;
+	RemminaConnectionObject* cnnobj;
 	gint i, n;
 
-	n = gtk_notebook_get_n_pages(notebook);
-	if (n > 1)
-	{
-		dialog = gtk_message_dialog_new(GTK_WINDOW(cnnhld->cnnwin), GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION,
-		                                GTK_BUTTONS_YES_NO,
-		                                _("There are %i active connections in the current window. Are you sure to close?"), n);
-		i = gtk_dialog_run(GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
-		if (i != GTK_RESPONSE_YES)
-			return TRUE;
-	}
-	/* Just in case the connection already closed by the server before clicking yes */
 	if (GTK_IS_WIDGET(notebook))
 	{
 		n = gtk_notebook_get_n_pages(notebook);
@@ -335,9 +323,51 @@ static gboolean remmina_connection_window_delete_event(GtkWidget* widget, GdkEve
 		{
 			w = gtk_notebook_get_nth_page(notebook, i);
 			cnnobj = (RemminaConnectionObject*) g_object_get_data(G_OBJECT(w), "cnnobj");
+			/* Do close the connection on this tab */
 			remmina_protocol_widget_close_connection(REMMINA_PROTOCOL_WIDGET(cnnobj->proto));
 		}
 	}
+
+}
+
+void remmina_connection_window_delete(RemminaConnectionWindow* cnnwin)
+{
+	TRACE_CALL("remmina_connection_window_delete");
+	RemminaConnectionWindowPriv* priv = cnnwin->priv;
+	RemminaConnectionHolder *cnnhld = cnnwin->priv->cnnhld;
+	GtkNotebook* notebook = GTK_NOTEBOOK(priv->notebook);
+	GtkWidget* dialog;
+	gint i, n;
+
+	if (!REMMINA_IS_CONNECTION_WINDOW(cnnwin))
+		return;
+
+	n = gtk_notebook_get_n_pages(notebook);
+	if (n > 1)
+	{
+		dialog = gtk_message_dialog_new(GTK_WINDOW(cnnwin), GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION,
+		                                GTK_BUTTONS_YES_NO,
+		                                _("There are %i active connections in the current window. Are you sure to close?"), n);
+		i = gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		if (i != GTK_RESPONSE_YES)
+			return;
+	}
+	remmina_connection_window_close_all_connections(cnnwin);
+
+	/* After remmina_connection_window_close_all_connections() call, cnnwin
+	 * has been already destroyed during a last page of notebook removal.
+	 * So we must rely on cnnhld */
+	if (cnnhld->cnnwin != NULL && GTK_IS_WIDGET(cnnhld->cnnwin))
+		gtk_widget_destroy(GTK_WIDGET(cnnhld->cnnwin));
+	cnnhld->cnnwin = NULL;
+
+}
+
+static gboolean remmina_connection_window_delete_event(GtkWidget* widget, GdkEvent* event, gpointer data)
+{
+	TRACE_CALL("remmina_connection_window_delete_event");
+	remmina_connection_window_delete(REMMINA_CONNECTION_WINDOW(widget));
 	return TRUE;
 }
 
@@ -384,6 +414,7 @@ static void remmina_connection_window_destroy(GtkWidget* widget, RemminaConnecti
 		cnnhld->cnnwin->priv = NULL;
 		cnnhld->cnnwin = NULL;
 	}
+
 }
 
 gboolean remmina_connection_window_notify_widget_toolbar_placement(GtkWidget *widget, gpointer data)
@@ -1517,7 +1548,7 @@ static void remmina_connection_holder_toolbar_minimize(GtkWidget* widget, Remmin
 static void remmina_connection_holder_toolbar_disconnect(GtkWidget* widget, RemminaConnectionHolder* cnnhld)
 {
 	TRACE_CALL("remmina_connection_holder_toolbar_disconnect");
-	remmina_connection_holder_disconnect(cnnhld);
+	remmina_connection_holder_disconnect_current_page(cnnhld);
 }
 
 static void remmina_connection_holder_toolbar_grab(GtkWidget* widget, RemminaConnectionHolder* cnnhld)
@@ -2502,12 +2533,16 @@ static void remmina_connection_holder_on_page_removed(GtkNotebook* notebook, Gtk
         RemminaConnectionHolder* cnnhld)
 {
 	TRACE_CALL("remmina_connection_holder_on_page_removed");
+
+	if (!cnnhld->cnnwin)
+		return;
+
 	if (gtk_notebook_get_n_pages(GTK_NOTEBOOK(cnnhld->cnnwin->priv->notebook)) <= 0)
 	{
 		gtk_widget_destroy(GTK_WIDGET(cnnhld->cnnwin));
 		cnnhld->cnnwin = NULL;
-		g_free(cnnhld);
 	}
+
 }
 
 GtkNotebook*
@@ -3066,7 +3101,7 @@ static gboolean remmina_connection_window_hostkey_func(RemminaProtocolWidget* gp
 	}
 	else if (keyval == remmina_pref.shortcutkey_disconnect)
 	{
-		remmina_connection_holder_disconnect(cnnhld);
+		remmina_connection_holder_disconnect_current_page(cnnhld);
 	}
 	else if (keyval == remmina_pref.shortcutkey_toolbar)
 	{
@@ -3218,6 +3253,18 @@ static void remmina_connection_object_on_disconnect(RemminaProtocolWidget* gp, R
 	TRACE_CALL("remmina_connection_object_on_disconnect");
 	RemminaConnectionHolder* cnnhld = cnnobj->cnnhld;
 	GtkWidget* dialog;
+	GtkWidget* pparent;
+
+
+	/* Detach the protocol widget from the notebook now, or we risk that a
+	 * window delete will destroy cnnobj->proto before we complete disconnection.
+	*/
+	pparent = gtk_widget_get_parent(cnnobj->proto);
+	if (pparent != NULL)
+	{
+		g_object_ref(cnnobj->proto);
+		gtk_container_remove(GTK_CONTAINER(pparent), cnnobj->proto);
+	}
 
 	cnnobj->connected = FALSE;
 
@@ -3236,7 +3283,6 @@ static void remmina_connection_object_on_disconnect(RemminaProtocolWidget* gp, R
 			remmina_file_save_group(cnnobj->remmina_file, REMMINA_SETTING_GROUP_RUNTIME);
 		}
 	}
-	remmina_file_free(cnnobj->remmina_file);
 
 	if (remmina_protocol_widget_has_error(gp))
 	{
@@ -3247,12 +3293,6 @@ static void remmina_connection_object_on_disconnect(RemminaProtocolWidget* gp, R
 		remmina_widget_pool_register(dialog);
 	}
 
-	if (cnnobj->window)
-	{
-		gtk_widget_destroy(cnnobj->window);
-		cnnobj->window = NULL;
-	}
-
 	if (cnnhld && cnnhld->cnnwin && cnnobj->scrolled_container)
 	{
 		gtk_notebook_remove_page(
@@ -3260,6 +3300,8 @@ static void remmina_connection_object_on_disconnect(RemminaProtocolWidget* gp, R
 		    gtk_notebook_page_num(GTK_NOTEBOOK(cnnhld->cnnwin->priv->notebook),
 		                          cnnobj->scrolled_container));
 	}
+
+	cnnobj->remmina_file = NULL;
 	g_free(cnnobj);
 }
 
@@ -3319,7 +3361,7 @@ remmina_connection_window_open_from_file_full(RemminaFile* remminafile, GCallbac
 	cnnobj->remmina_file = remminafile;
 
 	/* Exec precommand before everything else */
-	remmina_preexec_new(cnnobj->remmina_file);
+	remmina_plugin_cmdexec_new(cnnobj->remmina_file, "precommand");
 
 	/* Create the RemminaProtocolWidget */
 	cnnobj->proto = remmina_protocol_widget_new();

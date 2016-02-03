@@ -53,14 +53,18 @@
 
 static gboolean cb_closewidget(GtkWidget *widget, gpointer data)
 {
-	gtk_widget_destroy(widget);
+	TRACE_CALL("cb_closewidget");
+	/* The correct way to close a remmina_connection_window is to send
+	 * it a "delete-event" signal. Simply destroying it will not close
+	 * all network connections */
+	if (REMMINA_IS_CONNECTION_WINDOW(widget))
+		remmina_connection_window_delete(REMMINA_CONNECTION_WINDOW(widget));
 	return TRUE;
 }
 
 void remmina_exec_exitremmina()
 {
 	TRACE_CALL("remmina_exec_exitremmina");
-
 	int n;
 
 	/* Destroy all widgets, main window included */

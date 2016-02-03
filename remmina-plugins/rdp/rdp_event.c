@@ -216,7 +216,7 @@ void remmina_rdp_event_update_rect(RemminaProtocolWidget* gp, gint x, gint y, gi
 	gtk_widget_queue_draw_area(rfi->drawing_area, x, y, w, h);
 }
 
-static gboolean remmina_rdp_event_update_scale_factor(RemminaProtocolWidget* gp)
+static void remmina_rdp_event_update_scale_factor(RemminaProtocolWidget* gp)
 {
 	TRACE_CALL("remmina_rdp_event_update_scale_factor");
 	GtkAllocation a;
@@ -260,8 +260,14 @@ static gboolean remmina_rdp_event_update_scale_factor(RemminaProtocolWidget* gp)
 	if ((gpwidth > 1) && (gpheight > 1))
 			gtk_widget_queue_draw_area(GTK_WIDGET(gp), 0, 0, gpwidth, gpheight);
 
-	rfi->scale_handler = 0;
+}
 
+static gboolean remmina_rdp_event_update_scale_factor_async(RemminaProtocolWidget* gp)
+{
+	TRACE_CALL("remmina_rdp_event_update_scale_factor_async");
+	rfContext* rfi = GET_PLUGIN_DATA(gp);
+	rfi->scale_handler = 0;
+	remmina_rdp_event_update_scale_factor(gp);
 	return FALSE;
 }
 
@@ -301,7 +307,7 @@ static gboolean remmina_rdp_event_on_configure(GtkWidget* widget, GdkEventConfig
 	if (rfi->scale_handler)
 		g_source_remove(rfi->scale_handler);
 
-	rfi->scale_handler = g_timeout_add(300, (GSourceFunc) remmina_rdp_event_update_scale_factor, gp);
+	rfi->scale_handler = g_timeout_add(300, (GSourceFunc) remmina_rdp_event_update_scale_factor_async, gp);
 
 	return FALSE;
 }
@@ -457,7 +463,7 @@ static gboolean remmina_rdp_event_on_key(GtkWidget* widget, GdkEventKey* event, 
 {
 	TRACE_CALL("remmina_rdp_event_on_key");
 	GdkDisplay* display;
-	guint16 cooked_keycode;
+	KeyCode cooked_keycode;
 	rfContext* rfi = GET_PLUGIN_DATA(gp);
 	RemminaPluginRdpEvent rdp_event;
 	DWORD scancode;
@@ -743,6 +749,8 @@ static void remmina_rdp_event_connected(RemminaProtocolWidget* gp, RemminaPlugin
 	TRACE_CALL("remmina_rdp_event_connected");
 	rfContext* rfi = GET_PLUGIN_DATA(gp);
 
+	remmina_plugin_service->protocol_plugin_emit_signal(gp, "connect");
+
 	gtk_widget_realize(rfi->drawing_area);
 
 	remmina_rdp_event_create_cairo_surface(rfi);
@@ -799,6 +807,8 @@ static BOOL remmina_rdp_event_set_pointer_position(RemminaProtocolWidget *gp, gi
 	nw = gdk_device_get_window_at_position(dev, NULL, NULL);
 
 	if (nw == w) {
+		nx = 0;
+		ny = 0;
 		remmina_rdp_event_reverse_translate_pos_reverse(gp, x, y, &nx, &ny);
 		gdk_window_get_root_coords(w, nx, ny, &wx, &wy);
 		gdk_device_warp(dev, gdk_window_get_screen(w), wx, wy);
