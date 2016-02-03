@@ -34,13 +34,17 @@
 
 #include "plugin_config.h"
 
-#include "common/remmina_plugin.h"
+#define NO_IMPORT_PYGTK
+#include <Python.h>
+#include <pygtk-2.0/pygobject.h>
+#include <pygtk-2.0/pygtk/pygtk.h>
 
 #if GTK_VERSION == 3
 # include <gtk/gtkx.h>
 # include <gdk/gdkx.h>
 #endif
-#include <Python.h>
+
+#include "common/remmina_plugin.h"
 
 #if PY_VERSION_HEX < 0x03050000
 #define Py_DecodeLocale _Py_char2wchar
@@ -67,8 +71,12 @@ static gboolean remmina_plugin_python_simple_open_connection(RemminaProtocolWidg
 	wchar_t *program = Py_DecodeLocale(PLUGIN_NAME, NULL);
 	Py_SetProgramName(program);  /* optional but recommended */
 	Py_Initialize();
-	PyRun_SimpleString("from time import time,ctime\n"
-			"print('Hello, today is', ctime(time()))\n");
+	printf("Module Path: %s\n", Py_GetPath());
+	//PyRun_SimpleString("from time import time,ctime\n"
+	//		"print('Hello, today is', ctime(time()))\n");
+	FILE* file = fopen("/home/antenore/software/Remmina.next/remmina-plugins/python_simple/pygtk_test.py", "r");
+	PyRun_SimpleFile(file, "/home/antenore/software/Remmina.next/remmina-plugins/python_simple/pygtk_test.py");
+	fclose(file);
 	Py_Finalize();
 	PyMem_RawFree(program);
 
@@ -117,7 +125,6 @@ static RemminaProtocolPlugin remmina_plugin = {
 	NULL,                                             // Call a feature
 	NULL,                                             // Send a keystroke    */
 };
-
 
 G_MODULE_EXPORT gboolean remmina_plugin_entry(RemminaPluginService *service)
 {
