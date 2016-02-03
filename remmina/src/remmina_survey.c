@@ -62,7 +62,6 @@ static RemminaSurveyDialog *remmina_survey;
 static WebKitWebView* web_view;
 
 gchar *remmina_pref_file;
-gchar remminadir[MAX_PATH_LEN];
 RemminaPref remmina_pref;
 
 #define GET_OBJECT(object_name) gtk_builder_get_object(remmina_survey->builder, object_name)

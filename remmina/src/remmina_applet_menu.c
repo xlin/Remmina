@@ -60,8 +60,6 @@ enum
 static guint remmina_applet_menu_signals[LAST_SIGNAL] =
 { 0 };
 
-gchar remminadir[MAX_PATH_LEN];
-
 static void remmina_applet_menu_destroy(RemminaAppletMenu *menu, gpointer data)
 {
 	TRACE_CALL("remmina_applet_menu_destroy");
