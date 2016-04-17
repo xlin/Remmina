@@ -1458,6 +1458,7 @@ void remmina_rdp_cliprdr_mt_server_format_list(RemminaProtocolWidget* gp, Remmin
 	CLIPRDR_FORMAT_LIST *formatList;
 	CLIPRDR_FORMAT *format;
 	int i;
+	gboolean havefiles;
 
 	/* Here we just received a list of clipboard formats available at the server
 	 * side, and we want to put them in the local clipboard */
@@ -1473,6 +1474,7 @@ void remmina_rdp_cliprdr_mt_server_format_list(RemminaProtocolWidget* gp, Remmin
 	list = gtk_target_list_new (NULL, 0);
 
 	formatList = ui->clipboard.formatList;
+	havefiles = FALSE;
 
 	for (i = 0; i < formatList->numFormats; i++)
 	{
@@ -1514,9 +1516,7 @@ void remmina_rdp_cliprdr_mt_server_format_list(RemminaProtocolWidget* gp, Remmin
 		}
 		else if (format->formatName != NULL && strcmp(format->formatName, "FileGroupDescriptorW") == 0)
 		{
-
 			clipboard->remote_filegroupdescriptor_id = format->formatId;
-
 			gtk_target_list_add_uri_targets(list, format->formatId);
 		}
 		else if (format->formatName != NULL && strcmp(format->formatName, "FileContents") == 0)
@@ -1524,6 +1524,7 @@ void remmina_rdp_cliprdr_mt_server_format_list(RemminaProtocolWidget* gp, Remmin
 			GdkAtom atom = gdk_atom_intern(REMMINA_REMOTEFILE_CLIPBOARD_ATOM_NAME, FALSE);
 			gtk_target_list_add(list, atom, 0, format->formatId);
 			clipboard->remote_filecontents_id = format->formatId;
+			havefiles = TRUE;
 		}
 		else
 		{
@@ -1541,6 +1542,10 @@ void remmina_rdp_cliprdr_mt_server_format_list(RemminaProtocolWidget* gp, Remmin
 				(GtkClipboardGetFunc) remmina_rdp_cliprdr_request_owner_data,
 				(GtkClipboardClearFunc) remmina_rdp_cliprdr_empty_clipboard, G_OBJECT(gp));
 		gtk_target_table_free(targets, n_targets);
+		if (havefiles)
+			remmina_plugin_service->protocol_plugin_fileclip_set_owner(gp);
+		else
+			remmina_plugin_service->protocol_plugin_fileclip_set_owner(NULL);
 	}
 }
 
@@ -1554,6 +1559,7 @@ static void remmina_rdp_cliprdr_detach_owner(RemminaProtocolWidget* gp, RemminaP
 
 	gtkClipboard = gtk_widget_get_clipboard(rfi->drawing_area, GDK_SELECTION_CLIPBOARD);
 	if (gtkClipboard && gtk_clipboard_get_owner(gtkClipboard) == (GObject*)gp) {
+		remmina_plugin_service->protocol_plugin_fileclip_set_owner(NULL);
 		gtk_clipboard_clear(gtkClipboard);
 	}
 
