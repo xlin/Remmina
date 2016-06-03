@@ -83,6 +83,8 @@ if(SPICE_FOUND)
 	add_subdirectory(spice)
 endif()
 
+add_subdirectory(terminal)
+
 if(WITH_EXAMPLES)
 	add_subdirectory(tool_hello_world)
 endif()
