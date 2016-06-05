@@ -53,9 +53,9 @@ typedef struct _RemminaPluginData
 /* Array of key/value pairs for Terminal Emulators */
 static gpointer terminal_list[] =
 {
-	"0", N_("st - simple terminal"),
-	"1", N_("xterm - terminal emulator for X"),
-	"2", N_("rxvt-unicode (ouR XVT, unicode)"),
+	"st", N_("st - simple terminal"),
+	"xterm", N_("xterm - terminal emulator for X"),
+	"urxvt", N_("rxvt-unicode (ouR XVT, unicode)"),
 	NULL
 };
 
@@ -106,7 +106,7 @@ static gboolean remmina_plugin_terminal_new(RemminaProtocolWidget *gp)
 		if (value != NULL) \
 		{ \
 			argv[argc] = value; \
-			argv_debug[argc++] = g_strdup(g_strcmp0(name, "-p") != 0 ? value : "XXXXX"); \
+			argv_debug[argc++] = g_strdup(value); \
 		} \
 	}
 
@@ -115,9 +115,11 @@ static gboolean remmina_plugin_terminal_new(RemminaProtocolWidget *gp)
 	RemminaFile *remminafile;
 	gboolean ret;
 	GError *error = NULL;
-	gchar *argv[50];  // Contains all the arguments included the password
-	gchar *argv_debug[50]; // Contains all the arguments, excluding the password
-	gchar *command_line; // The whole command line obtained from argv_debug
+	gchar *term;                  // Terminal Emulator name
+	gchar *embed;                 // Option name to embed window
+	gchar *argv[50];              // Contains all the arguments
+	gchar *argv_debug[50];        // Contains all the arguments
+	gchar *command_line;          // The whole command line
 	gint argc;
 	gint i;
 
@@ -127,20 +129,32 @@ static gboolean remmina_plugin_terminal_new(RemminaProtocolWidget *gp)
 	gpdata = (RemminaPluginData*) g_object_get_data(G_OBJECT(gp), "plugin-data");
 	remminafile = remmina_plugin_service->protocol_plugin_get_file(gp);
 
-	//if (!GET_PLUGIN_BOOLEAN("detached"))
-	//{
-		remmina_plugin_service->protocol_plugin_set_width(gp, 640);
-		remmina_plugin_service->protocol_plugin_set_height(gp, 480);
-		gtk_widget_set_size_request(GTK_WIDGET(gp), 640, 480);
-		gpdata->socket_id = gtk_socket_get_id(GTK_SOCKET(gpdata->socket));
-	//}
+	remmina_plugin_service->protocol_plugin_set_width(gp, 640);
+	remmina_plugin_service->protocol_plugin_set_height(gp, 480);
+	gtk_widget_set_size_request(GTK_WIDGET(gp), 640, 480);
+	gpdata->socket_id = gtk_socket_get_id(GTK_SOCKET(gpdata->socket));
+
+	term = g_strdup (remmina_plugin_service->file_get_string (remminafile, "terminal"));
+
+	if (strcmp(term, "st") == 0)
+	{
+		embed = g_strdup ("-w");
+	}
+	else if (strcmp(term, "xterm") == 0)
+	{
+		embed = g_strdup ("-into");
+	}
+	else if (strcmp(term, "urxvt") == 0)
+	{
+		embed = g_strdup ("-embed");
+	}
 
 	argc = 0;
 	// Main executable name
-	ADD_ARGUMENT("st", NULL);
+	ADD_ARGUMENT(term, NULL);
 	// Embed terminal window in another window
 	if (gpdata->socket_id != 0)
-		ADD_ARGUMENT("-w", g_strdup_printf("%i", gpdata->socket_id));
+		ADD_ARGUMENT(embed, g_strdup_printf("%i", gpdata->socket_id));
 	//g_free(option_str);
 	// End of the arguments list
 	ADD_ARGUMENT(NULL, NULL);
@@ -163,15 +177,8 @@ static gboolean remmina_plugin_terminal_new(RemminaProtocolWidget *gp)
 	if (!ret)
 		remmina_plugin_service->protocol_plugin_set_error(gp, "%s", error->message);
 	// Show attached window socket ID
-	//if (!GET_PLUGIN_BOOLEAN("detached"))
-	//{
-		remmina_plugin_service->log_printf("[TERMINAL] attached window to socket %d\n", gpdata->socket_id);
-		return TRUE;
-	//}
-	//else
-	//{
-		//return FALSE;
-	//}
+	remmina_plugin_service->log_printf("[TERMINAL] attached window to socket %d\n", gpdata->socket_id);
+	return TRUE;
 }
 
 static gboolean remmina_plugin_terminal_close(RemminaProtocolWidget *gp)
@@ -195,7 +202,6 @@ static const RemminaProtocolSetting remmina_plugin_terminal_basic_settings[] =
 {
 	{ REMMINA_PROTOCOL_SETTING_TYPE_END, NULL, NULL, FALSE, NULL, NULL }
 };
-
 
 /* Array of RemminaProtocolSetting for advanced settings.
  * Each item is composed by:
