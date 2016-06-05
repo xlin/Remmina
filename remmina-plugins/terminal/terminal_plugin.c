@@ -200,6 +200,7 @@ static gboolean remmina_plugin_terminal_close(RemminaProtocolWidget *gp)
  */
 static const RemminaProtocolSetting remmina_plugin_terminal_basic_settings[] =
 {
+	{ REMMINA_PROTOCOL_SETTING_TYPE_TEXT, "command", N_("Command to be executed or shell"), FALSE, NULL, NULL },
 	{ REMMINA_PROTOCOL_SETTING_TYPE_END, NULL, NULL, FALSE, NULL, NULL }
 };
 
