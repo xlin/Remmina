@@ -50,6 +50,15 @@ typedef struct _RemminaPluginData
 	GPid pid;
 } RemminaPluginData;
 
+/* Array of key/value pairs for Terminal Emulators */
+static gpointer terminal_list[] =
+{
+	"0", N_("st - simple terminal"),
+	"1", N_("xterm - terminal emulator for X"),
+	"2", N_("rxvt-unicode (ouR XVT, unicode)"),
+	NULL
+};
+
 static RemminaPluginService *remmina_plugin_service = NULL;
 
 static void remmina_plugin_terminal_on_plug_added(GtkSocket *socket, RemminaProtocolWidget *gp)
@@ -199,6 +208,7 @@ static const RemminaProtocolSetting remmina_plugin_terminal_basic_settings[] =
  */
 static const RemminaProtocolSetting remmina_plugin_terminal_advanced_settings[] =
 {
+	{ REMMINA_PROTOCOL_SETTING_TYPE_SELECT, "terminal", N_("Termina Emulator"), FALSE, terminal_list, NULL },
 	{ REMMINA_PROTOCOL_SETTING_TYPE_END, NULL, NULL, FALSE, NULL, NULL }
 };
 
