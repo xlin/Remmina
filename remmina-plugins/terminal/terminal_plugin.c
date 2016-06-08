@@ -98,6 +98,14 @@ static void remmina_plugin_terminal_init(RemminaProtocolWidget *gp)
 static gboolean remmina_plugin_terminal_new(RemminaProtocolWidget *gp)
 {
 	TRACE_CALL(__func__);
+#	define GET_PLUGIN_STRING(value) \
+		g_strdup(remmina_plugin_service->file_get_string(remminafile, value))
+#	define GET_PLUGIN_BOOLEAN(value) \
+		remmina_plugin_service->file_get_int(remminafile, value, FALSE)
+#	define GET_PLUGIN_INT(value, default_value) \
+		remmina_plugin_service->file_get_int(remminafile, value, default_value)
+#	define GET_PLUGIN_PASSWORD(value) \
+		g_strdup(remmina_plugin_service->file_get_secret(remminafile, value))
 #	define ADD_ARGUMENT(name, value) \
 	{ \
 		argv[argc] = g_strdup(name); \
@@ -123,7 +131,7 @@ static gboolean remmina_plugin_terminal_new(RemminaProtocolWidget *gp)
 	gint argc;
 	gint i;
 
-	//gchar *option_str;
+	gchar *option_str;
 	//gint option_int;
 
 	gpdata = (RemminaPluginData*) g_object_get_data(G_OBJECT(gp), "plugin-data");
@@ -155,7 +163,11 @@ static gboolean remmina_plugin_terminal_new(RemminaProtocolWidget *gp)
 	// Embed terminal window in another window
 	if (gpdata->socket_id != 0)
 		ADD_ARGUMENT(embed, g_strdup_printf("%i", gpdata->socket_id));
-	//g_free(option_str);
+	// Command option
+	option_str = GET_PLUGIN_STRING("command");
+	if (option_str)
+		ADD_ARGUMENT("-e", option_str);
+	g_free(option_str);
 	// End of the arguments list
 	ADD_ARGUMENT(NULL, NULL);
 	// Retrieve the whole command line
@@ -163,7 +175,7 @@ static gboolean remmina_plugin_terminal_new(RemminaProtocolWidget *gp)
 	remmina_plugin_service->log_printf("[TERMINAL] starting %s\n", command_line);
 	g_free(command_line);
 	// Execute the external process terminal
-	ret = g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+	ret = g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH|G_SPAWN_DO_NOT_REAP_CHILD,
 			NULL, NULL, &gpdata->pid, &error);
 	remmina_plugin_service->log_printf(
 			"[TERMINAL] started terminal with GPid %d\n", &gpdata->pid);
