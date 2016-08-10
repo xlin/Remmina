@@ -658,8 +658,11 @@ static void remmina_rdp_main_loop(RemminaProtocolWidget* gp)
 
 		if (!freerdp_check_event_handles(rfi->instance->context))
 		{
-			if (rf_auto_reconnect(rfi))
+			if (rf_auto_reconnect(rfi)) {
+				/* Reset the possible reason/error which made us doing many reconnection reattempts and continue */
+				remmina_plugin_service->protocol_plugin_set_error(gp, NULL);
 				continue;
+			}
 			fprintf(stderr, "Failed to check FreeRDP event handles\n");
 			break;
 		}
@@ -717,9 +720,10 @@ static gboolean remmina_rdp_main(RemminaProtocolWidget* gp)
 	if (!remmina_rdp_tunnel_init(gp))
 		return FALSE;
 
-	/* Enable by default RDP AutoReconnection, only when ssh tunnel is not enabled */
-	 if (!remmina_plugin_service->file_get_int(remminafile, "ssh_enabled", FALSE)) {
-		rfi->settings->AutoReconnectionEnabled = TRUE;
+	rfi->settings->AutoReconnectionEnabled = ( remmina_plugin_service->file_get_int(remminafile, "disableautoreconnect", FALSE) ? FALSE : TRUE );
+	/* Disable RDP auto reconnection when ssh tunnel is enabled */
+	if (remmina_plugin_service->file_get_int(remminafile, "ssh_enabled", FALSE)) {
+		rfi->settings->AutoReconnectionEnabled = FALSE;
 	}
 
 	rfi->settings->ColorDepth = remmina_plugin_service->file_get_int(remminafile, "colordepth", 0);
@@ -1340,6 +1344,7 @@ static const RemminaProtocolSetting remmina_rdp_basic_settings[] =
 	{ REMMINA_PROTOCOL_SETTING_TYPE_RESOLUTION, NULL, NULL, FALSE, NULL, NULL },
 	{ REMMINA_PROTOCOL_SETTING_TYPE_SELECT, "colordepth", N_("Color depth"), FALSE, colordepth_list, NULL },
 	{ REMMINA_PROTOCOL_SETTING_TYPE_FOLDER, "sharefolder", N_("Share folder"), FALSE, NULL, NULL },
+	{ REMMINA_PROTOCOL_SETTING_TYPE_CHECK, "disableautoreconnect", N_("Disable automatic reconnection"), FALSE, NULL, NULL },
 	{ REMMINA_PROTOCOL_SETTING_TYPE_END, NULL, NULL, FALSE, NULL, NULL }
 };
 
