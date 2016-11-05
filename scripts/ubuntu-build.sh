@@ -54,27 +54,38 @@ VER_BRANCH="$(git branch | grep '^\*' | cut -c 3-)"
 test "$VER_BRANCH" && VER_BRANCH="+${VER_BRANCH}"
 VER_DATE="$(date +%Y%m%d%H%M)"
 
-PKG_VER="${VER_MAJ}.${VER_MIN}.${VER_REV}~${VER_SFX}${VER_BRANCH}+${VER_DATE}"
-PKG_DIR="${PKG_NAME}_${PKG_VER}"
+if [ "$IS_DEV_RELEASE" = "y" ]; then
+    PKG_VER="${VER_MAJ}.${VER_MIN}.${VER_REV}~${VER_SFX}-0ubuntu0~${VER_BRANCH}+${VER_DATE}"
+else
+    PKG_VER="$(head -n 1 debian/changelog | sed 's/.*(//g;s/).*//g')"
+fi
+ORIG_VER="$(echo "$PKG_VER" | sed 's/-[^-]*$//g')"
 
-echo $PKG_VER
+PKG_DIR="${PKG_NAME}_${PKG_VER}"
+ORIG_DIR="${PKG_NAME}_${ORIG_VER}"
 
 mkdir -p ${BDIR}
 rm -rf ${BDIR}/*
 
 # exports repo without .git folder and other operative system clients
-git archive --format tar --prefix "${BDIR}/${PKG_DIR}/" HEAD | \
+git archive --format tar --prefix "${BDIR}/${ORIG_DIR}/" HEAD | \
     tar xv
+git --no-pager log --format="%ai %aN (%h) %n%n%x09*%w(68,0,10) %s%d%n" > "${BDIR}/${ORIG_DIR}/ChangeLog"
+cd "${BDIR}"
+mv "${ORIG_DIR}/debian" .
+tar zcvf "${ORIG_DIR}".orig.tar.gz "${ORIG_DIR}"
+
+mv "$ORIG_DIR" "$PKG_DIR"
+mv debian "$PKG_DIR/"
+cd -
 
 # Override original ChangeLog with git logs (maybe necessary for debian policy ?
-git --no-pager log --format="%ai %aN (%h) %n%n%x09*%w(68,0,10) %s%d%n" > "${BDIR}/${PKG_DIR}/ChangeLog"
 
 # NOTE: artificially files date reconstruction is skipped
 
-
-mv ${BDIR}/${PKG_DIR}/debian/changelog ${BDIR}/changelog.orig
+mv ${BDIR}/${PKG_DIR}/debian/changelog ${BDIR}/changelog.orig.orig
 cd ${BDIR}/${PKG_DIR}/
-tar zcvf "../${PKG_NAME}_${PKG_VER}.orig.tar.gz" .
+tar zcvf "../${PKG_DIR}.orig.tar.gz" .
 for serie in yakkety wily xenial trusty; do
     if [ "$IS_DEV_RELEASE" = "y" ]; then
         cat <<EOF >debian/changelog
@@ -88,6 +99,8 @@ EOF
     else
         rm -f debian/changelog
         touch debian/changelog
+        pwd
+        sed "1s/unstable/$serie/g" <../changelog.orig.orig >../changelog.orig
     fi
 
     cat ../changelog.orig >>debian/changelog
