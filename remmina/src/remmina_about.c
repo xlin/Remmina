@@ -44,7 +44,7 @@
 void remmina_about_open(GtkWindow *parent)
 {
 	TRACE_CALL("remmina_about_open");
-	static gchar version[32];
+	static gchar version[128];
 
 	g_snprintf(version, sizeof(version), "%s (git %s)", VERSION, GIT_REVISION);
 	GtkBuilder *builder = remmina_public_gtk_builder_new_from_file("remmina_about.glade");
