@@ -126,6 +126,13 @@ endif()
 if(NOT GIT_REVISION)
     set(GIT_REVISION ${REMMINA_VERSION_SUFFIX})
 endif()
+
+# if git revision passed by package system has priority
+set(PACKAGE_GIT_REVISION "")
+if(PACKAGE_GIT_REVISION)
+    set(GIT_REVISION ${PACKAGE_GIT_REVISION})
+endif()
+
 message(STATUS "Git Revision ${GIT_REVISION}")
 
 if(NOT UNIQUE_APPNAME)
