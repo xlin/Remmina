@@ -51,6 +51,7 @@
 #include "remmina_connection_window.h"
 #include "remmina_plugin_manager.h"
 #include "remmina_public.h"
+#include "remmina_mpchange.h"
 #include "remmina_masterthread_exec.h"
 #include "remmina/remmina_trace_calls.h"
 
@@ -182,7 +183,8 @@ RemminaPluginService remmina_plugin_manager_service =
 	remmina_connection_window_open_from_file_full,
 	remmina_public_get_server_port,
 	remmina_masterthread_exec_is_main_thread,
-	remmina_gtksocket_available
+	remmina_gtksocket_available,
+	remmina_mpchange_schedule
 
 };
 

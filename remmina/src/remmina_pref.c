@@ -573,6 +573,13 @@ void remmina_pref_init(void)
 	else
 		remmina_pref.vte_shortcutkey_select_all = GDK_KEY_a;
 
+	if (g_key_file_has_key(gkeyfile, "remmina_pref", "mpchange_enable", NULL))
+		remmina_pref.mpchange_enable = g_key_file_get_boolean(gkeyfile, "remmina_pref", "mpchange_enable",
+		                                   NULL);
+	else
+		remmina_pref.mpchange_enable = TRUE;
+
+
 	g_key_file_free(gkeyfile);
 
 	if (remmina_pref.secret == NULL)
@@ -646,6 +653,7 @@ void remmina_pref_save(void)
 	g_key_file_set_boolean (gkeyfile, "remmina_pref", "vte_system_colors", remmina_pref.vte_system_colors);
 	g_key_file_set_string(gkeyfile, "remmina_pref", "vte_foreground_color", remmina_pref.vte_foreground_color ? remmina_pref.vte_foreground_color : "");
 	g_key_file_set_string(gkeyfile, "remmina_pref", "vte_background_color", remmina_pref.vte_background_color ? remmina_pref.vte_background_color : "");
+	g_key_file_set_boolean(gkeyfile, "remmina_pref", "mpchange_enable", remmina_pref.mpchange_enable);
 
 	content = g_key_file_to_data(gkeyfile, &length, NULL);
 	g_file_set_contents(remmina_pref_file, content, length, NULL);

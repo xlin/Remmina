@@ -3529,7 +3529,9 @@ static void remmina_connection_object_on_connect(RemminaProtocolWidget* gp, Remm
 				remmina_file_get_string(cnnobj->remmina_file, "server"));
 	}
 
-	/* Save credentials */
+	/* Save credentials stored in cnnobj->remmina_file.
+	 * This has the side effect to update the date/time of .remmina file for every connect :(
+	 *  */
 	remmina_file_save_group(cnnobj->remmina_file, REMMINA_SETTING_GROUP_CREDENTIAL);
 
 	if (!cnnhld->cnnwin)

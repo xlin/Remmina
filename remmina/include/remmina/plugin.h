@@ -226,6 +226,7 @@ typedef struct _RemminaPluginService
     void         (* get_server_port)                      (const gchar *server, gint defaultport, gchar **host, gint *port);
     gboolean     (* is_main_thread)                       (void);
     gboolean     (* gtksocket_available)                  (void);
+    void         (* mpchange_schedule)                    (RemminaFile *remminafile, gboolean has_domain, gchar *username, gchar *domain, gchar *password);
 
 } RemminaPluginService;
 
