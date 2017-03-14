@@ -39,27 +39,138 @@
 #include "config.h"
 #include "remmina_mpchange.h"
 #include "remmina_file.h"
+#include "remmina_file_manager.h"
 #include "remmina_pref.h"
+#include "remmina_public.h"
+#include "remmina_main.h"
+#include "remmina_plugin_manager.h"
 #include "remmina/remmina_trace_calls.h"
 
+#define GET_DIALOG_OBJECT(object_name) gtk_builder_get_object(bu, object_name)
+
 struct mpchanger_params {
-	gchar *username;
-	gchar *domain;
-	gchar *password;
+	gchar *username;	// New username
+	gchar *domain;		// New domain
+	gchar *password;	// New password
+	gchar *group;
+
+	GtkListStore* store;
 };
+
+enum {
+	COL_F = 0,
+	COL_NAME,
+	COL_GROUP,
+	COL_USERNAME,
+	NUM_COLS
+};
+
+static void remmina_mpchange_file_list_callback(RemminaFile *remminafile, gpointer user_data)
+{
+	TRACE_CALL("remmina_mpchange_file_list_callback");
+	GtkListStore* store;
+	GtkTreeIter iter;
+	const gchar *username, *domain, *group;
+
+	gchar* s;
+	gboolean sel;
+	struct mpchanger_params* mpcp;
+
+	mpcp = (struct mpchanger_params*)user_data;
+	store = GTK_LIST_STORE(mpcp->store);
+
+
+	username = remmina_file_get_string(remminafile, "username");
+	domain = remmina_file_get_string(remminafile, "domain");
+	group = remmina_file_get_string(remminafile, "group");
+
+	if (username == NULL)
+		username = "";
+
+	if (domain == NULL)
+		domain = "";
+
+	if (group == NULL)
+		group = "";
+
+
+	if (strcasecmp(username, mpcp->username) != 0 ||
+		strcasecmp(domain, mpcp->domain) != 0)
+		return;
+
+	if (strcasecmp(group, mpcp->group) != 0)
+		sel = FALSE;
+	else
+		sel = TRUE;
+
+
+	gtk_list_store_append(store, &iter);
+	s = g_strdup_printf("%s\\%s", domain, username);
+
+	printf("GIO: %s\\%s %s\n",mpcp->domain, mpcp->username, s);
+
+	gtk_list_store_set(store, &iter,
+		COL_F, sel,
+		COL_NAME, remmina_file_get_string(remminafile, "name"),
+		COL_GROUP, group,
+		COL_USERNAME,   s,
+		-1);
+	g_free(s);
+
+
+}
 
 static gboolean remmina_file_multipasswd_changer_mt(gpointer d)
 {
 	TRACE_CALL("remmina_file_multipasswd_changer_mt");
 	struct mpchanger_params *mpcp = d;
+	GtkBuilder* bu;
+	GtkDialog* dialog;
+	GtkWindow* mainwindow;
+	GtkLabel* lbl;
+	gchar* s;
+	GtkListStore* lstore;
 
 	printf("GIO: multipasschanger called for username = %s\n", mpcp->username);
 
+	/* The multiple passowrd changer works only when a secret plugin is available */
+	if (remmina_plugin_manager_get_secret_plugin() == NULL)
+		return FALSE;
+
+	mainwindow = remmina_main_get_window();
+
+	bu = remmina_public_gtk_builder_new_from_file("remmina_mpc.glade");
+	if (!bu)
+		return FALSE;
+
+	dialog = GTK_DIALOG(gtk_builder_get_object(bu, "MPCDialog"));
+	if (mainwindow)
+		gtk_window_set_transient_for(GTK_WINDOW(dialog), mainwindow);
+
+
+
+	lstore = gtk_list_store_new(NUM_COLS, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+
+
+
+	s = g_strdup_printf(_("Changing password for user <span weight='bold'>%s\\%s</span> in group <span weight='bold'>%s</span>"), mpcp->domain, mpcp->username, mpcp->group);
+	lbl = GTK_LABEL(GET_DIALOG_OBJECT("row1Label"));
+	gtk_label_set_markup(lbl, s);
+	g_free(s);
+
+	mpcp->store = lstore;
+	remmina_file_manager_iterate((GFunc) remmina_mpchange_file_list_callback, (gpointer)mpcp);
+
+	gtk_tree_view_set_model(GTK_TREE_VIEW(GET_DIALOG_OBJECT("profchangelist")), GTK_TREE_MODEL(lstore));
+
+	gtk_dialog_run(dialog);
+	gtk_widget_destroy(GTK_WIDGET(dialog));
 
 	// Free data and remove event source
 	g_free(mpcp->username);
 	g_free(mpcp->password);
 	g_free(mpcp->domain);
+	g_free(mpcp->group);
 	g_free(mpcp);
 	return FALSE;
 }
@@ -77,11 +188,13 @@ remmina_mpchange_schedule(RemminaFile *remminafile, gboolean has_domain, gchar *
 
 	printf("GIO: remmina_mpchange_schedule\n");
 
+
 	if (remmina_pref.mpchange_enable) {
 		mpcp = g_malloc0(sizeof(struct mpchanger_params));
 		mpcp->username = g_strdup(username);
 		mpcp->password = g_strdup(password);
 		mpcp->domain = g_strdup(domain);
+		mpcp->group = g_strdup(remmina_file_get_string(remminafile, "group"));
 		gdk_threads_add_idle(remmina_file_multipasswd_changer_mt, (gpointer)mpcp);
 	}
 
