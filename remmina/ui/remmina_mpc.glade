@@ -5,6 +5,7 @@
   <object class="GtkDialog" id="MPCDialog">
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">Remmina - Multi Password Changer</property>
+    <property name="modal">True</property>
     <property name="type_hint">dialog</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="dialog-vbox1">
@@ -16,8 +17,8 @@
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="button1">
-                <property name="label" translatable="yes">button</property>
+              <object class="GtkButton" id="btnDoChange">
+                <property name="label" translatable="yes">Change</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -29,10 +30,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="button2">
-                <property name="label" translatable="yes">button</property>
+              <object class="GtkButton" id="btnCancelChange">
+                <property name="label" translatable="yes">Cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="can_default">True</property>
+                <property name="has_default">True</property>
                 <property name="receives_default">True</property>
               </object>
               <packing>
@@ -53,6 +56,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="halign">baseline</property>
+            <property name="ypad">9</property>
             <property name="label" translatable="yes">&lt;span weight='bold' size='larger'&gt;Multi Password Changer&lt;/span&gt;</property>
             <property name="use_markup">True</property>
             <property name="ellipsize">start</property>
@@ -67,6 +71,7 @@
           <object class="GtkLabel" id="row1Label">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="ypad">4</property>
             <property name="ellipsize">end</property>
           </object>
           <packing>
@@ -79,7 +84,9 @@
           <object class="GtkLabel" id="row2Label">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Do you want to change the password for the following profiles?</property>
+            <property name="xpad">5</property>
+            <property name="ypad">7</property>
+            <property name="label" translatable="yes">Select the profiles where the password should be reset and then press the Change button</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -92,6 +99,8 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="shadow_type">in</property>
+            <property name="min_content_width">130</property>
+            <property name="min_content_height">254</property>
             <child>
               <object class="GtkTreeView" id="profchangelist">
                 <property name="visible">True</property>
@@ -156,5 +165,8 @@
         </child>
       </object>
     </child>
+    <action-widgets>
+      <action-widget response="0">btnCancelChange</action-widget>
+    </action-widgets>
   </object>
 </interface>

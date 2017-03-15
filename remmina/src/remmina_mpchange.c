@@ -117,7 +117,29 @@ static void remmina_mpchange_file_list_callback(RemminaFile *remminafile, gpoint
 		-1);
 	g_free(s);
 
+}
 
+static void remmina_mpchange_checkbox_toggle(GtkCellRendererToggle *cell, gchar *path_string, gpointer user_data)
+{
+	TRACE_CALL("remmina_mpchange_checkbox_toggle");
+	GtkTreeIter iter;
+	GtkListStore* store = (GtkListStore*)user_data;
+	GtkTreePath *path;
+
+	gboolean a = gtk_cell_renderer_toggle_get_active(cell);
+	path = gtk_tree_path_new_from_string(path_string);
+	gtk_tree_model_get_iter(GTK_TREE_MODEL(store), &iter, path);
+	gtk_tree_path_free (path);
+	gtk_list_store_set(store, &iter, COL_F, !a, -1);
+}
+
+static void remmina_mpchange_dochange_clicked(GtkButton *btn, gpointer user_data)
+{
+	TRACE_CALL("remmina_mpchange_dochange_clicked");
+	GtkDialog* dialog = (GtkDialog*)user_data;
+
+
+	printf("GIO: remmina_mpchange_dochange_clicked\n");
 }
 
 static gboolean remmina_file_multipasswd_changer_mt(gpointer d)
@@ -130,6 +152,7 @@ static gboolean remmina_file_multipasswd_changer_mt(gpointer d)
 	GtkLabel* lbl;
 	gchar* s;
 	GtkListStore* lstore;
+	GtkCellRendererToggle *toggle;
 
 	printf("GIO: multipasschanger called for username = %s\n", mpcp->username);
 
@@ -147,11 +170,7 @@ static gboolean remmina_file_multipasswd_changer_mt(gpointer d)
 	if (mainwindow)
 		gtk_window_set_transient_for(GTK_WINDOW(dialog), mainwindow);
 
-
-
 	lstore = gtk_list_store_new(NUM_COLS, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
-
-
 
 	s = g_strdup_printf(_("Changing password for user <span weight='bold'>%s\\%s</span> in group <span weight='bold'>%s</span>"), mpcp->domain, mpcp->username, mpcp->group);
 	lbl = GTK_LABEL(GET_DIALOG_OBJECT("row1Label"));
@@ -162,6 +181,12 @@ static gboolean remmina_file_multipasswd_changer_mt(gpointer d)
 	remmina_file_manager_iterate((GFunc) remmina_mpchange_file_list_callback, (gpointer)mpcp);
 
 	gtk_tree_view_set_model(GTK_TREE_VIEW(GET_DIALOG_OBJECT("profchangelist")), GTK_TREE_MODEL(lstore));
+
+	toggle = GTK_CELL_RENDERER_TOGGLE(GET_DIALOG_OBJECT("cellrenderertoggle1"));
+	g_signal_connect(G_OBJECT(toggle), "toggled", G_CALLBACK(remmina_mpchange_checkbox_toggle), (gpointer)lstore);
+
+	g_signal_connect(GTK_BUTTON(GET_DIALOG_OBJECT("btnDoChange")), "clicked", G_CALLBACK(remmina_mpchange_dochange_clicked), (gpointer)dialog);
+	g_signal_connect(dialog, "response", G_CALLBACK(gtk_widget_destroy), NULL);
 
 	gtk_dialog_run(dialog);
 	gtk_widget_destroy(GTK_WIDGET(dialog));
