@@ -55,6 +55,9 @@ struct mpchanger_params {
 	gchar *group;
 
 	GtkListStore* store;
+	GtkDialog* dialog;
+	GtkTreeView* table;
+	GtkButton* btnDoChange;
 };
 
 enum {
@@ -62,6 +65,7 @@ enum {
 	COL_NAME,
 	COL_GROUP,
 	COL_USERNAME,
+	COL_FILENAME,
 	NUM_COLS
 };
 
@@ -107,13 +111,14 @@ static void remmina_mpchange_file_list_callback(RemminaFile *remminafile, gpoint
 	gtk_list_store_append(store, &iter);
 	s = g_strdup_printf("%s\\%s", domain, username);
 
-	printf("GIO: %s\\%s %s\n",mpcp->domain, mpcp->username, s);
+	printf("GIO: %s %s\\%s %s\n",remminafile->filename, mpcp->domain, mpcp->username, s);
 
 	gtk_list_store_set(store, &iter,
 		COL_F, sel,
 		COL_NAME, remmina_file_get_string(remminafile, "name"),
 		COL_GROUP, group,
 		COL_USERNAME,   s,
+		COL_FILENAME, remminafile->filename,
 		-1);
 	g_free(s);
 
@@ -133,13 +138,40 @@ static void remmina_mpchange_checkbox_toggle(GtkCellRendererToggle *cell, gchar 
 	gtk_list_store_set(store, &iter, COL_F, !a, -1);
 }
 
+static void remmina_mpchange_dochange(gchar* fname, struct mpchanger_params* mpcp)
+{
+	TRACE_CALL("remmina_mpchange_dochange");
+	printf("GIO: changing password for %s\n", fname);
+	RemminaFile* remminafile;
+
+	remminafile = remmina_file_load(fname);
+	remmina_file_store_secret_plugin_password(remminafile, "password", mpcp->password);
+	remmina_file_free(remminafile);
+
+}
+
 static void remmina_mpchange_dochange_clicked(GtkButton *btn, gpointer user_data)
 {
 	TRACE_CALL("remmina_mpchange_dochange_clicked");
-	GtkDialog* dialog = (GtkDialog*)user_data;
+	struct mpchanger_params* mpcp = (struct mpchanger_params*)user_data;
+	// GtkDialog* dialog = mpcp->dialog;
+	GtkTreeIter iter;
+
+	if (!gtk_tree_model_get_iter_first(GTK_TREE_MODEL(mpcp->store), &iter))
+		return;
+	do {
+		gchar* fname;
+		gboolean sel;
+		gtk_tree_model_get(GTK_TREE_MODEL(mpcp->store), &iter, COL_F, &sel, -1);
+		gtk_tree_model_get(GTK_TREE_MODEL(mpcp->store), &iter, COL_FILENAME, &fname, -1);
+		if (sel) {
+			remmina_mpchange_dochange(fname, mpcp);
+		}
+		g_free(fname);
+	} while(gtk_tree_model_iter_next(GTK_TREE_MODEL(mpcp->store), &iter));
 
 
-	printf("GIO: remmina_mpchange_dochange_clicked\n");
+
 }
 
 static gboolean remmina_file_multipasswd_changer_mt(gpointer d)
@@ -167,10 +199,11 @@ static gboolean remmina_file_multipasswd_changer_mt(gpointer d)
 		return FALSE;
 
 	dialog = GTK_DIALOG(gtk_builder_get_object(bu, "MPCDialog"));
+	mpcp->dialog = dialog;
 	if (mainwindow)
 		gtk_window_set_transient_for(GTK_WINDOW(dialog), mainwindow);
 
-	lstore = gtk_list_store_new(NUM_COLS, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+	lstore = gtk_list_store_new(NUM_COLS, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
 
 	s = g_strdup_printf(_("Changing password for user <span weight='bold'>%s\\%s</span> in group <span weight='bold'>%s</span>"), mpcp->domain, mpcp->username, mpcp->group);
 	lbl = GTK_LABEL(GET_DIALOG_OBJECT("row1Label"));
@@ -180,12 +213,14 @@ static gboolean remmina_file_multipasswd_changer_mt(gpointer d)
 	mpcp->store = lstore;
 	remmina_file_manager_iterate((GFunc) remmina_mpchange_file_list_callback, (gpointer)mpcp);
 
-	gtk_tree_view_set_model(GTK_TREE_VIEW(GET_DIALOG_OBJECT("profchangelist")), GTK_TREE_MODEL(lstore));
+	mpcp->table = GTK_TREE_VIEW(GET_DIALOG_OBJECT("profchangelist"));
+	gtk_tree_view_set_model(mpcp->table, GTK_TREE_MODEL(lstore));
 
 	toggle = GTK_CELL_RENDERER_TOGGLE(GET_DIALOG_OBJECT("cellrenderertoggle1"));
 	g_signal_connect(G_OBJECT(toggle), "toggled", G_CALLBACK(remmina_mpchange_checkbox_toggle), (gpointer)lstore);
 
-	g_signal_connect(GTK_BUTTON(GET_DIALOG_OBJECT("btnDoChange")), "clicked", G_CALLBACK(remmina_mpchange_dochange_clicked), (gpointer)dialog);
+	mpcp->btnDoChange = GTK_BUTTON(GET_DIALOG_OBJECT("btnDoChange"));
+	g_signal_connect(mpcp->btnDoChange, "clicked", G_CALLBACK(remmina_mpchange_dochange_clicked), (gpointer)mpcp);
 	g_signal_connect(dialog, "response", G_CALLBACK(gtk_widget_destroy), NULL);
 
 	gtk_dialog_run(dialog);

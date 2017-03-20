@@ -405,6 +405,16 @@ static void remmina_file_store_group(RemminaFile *remminafile, GKeyFile *gkeyfil
 	}
 }
 
+void remmina_file_store_secret_plugin_password(RemminaFile *remminafile, const gchar* key, const gchar* value)
+{
+	TRACE_CALL("remmina_file_store_secret_plugin_password");
+	/* Only change the password in the keyring. This function
+	 * is a shortcut which avoids updating of date/time of .pref file */
+	RemminaSecretPlugin* plugin;
+	plugin = remmina_plugin_manager_get_secret_plugin();
+	plugin->store_password(remminafile, key, value);
+}
+
 static GKeyFile*
 remmina_file_get_keyfile(RemminaFile *remminafile)
 {

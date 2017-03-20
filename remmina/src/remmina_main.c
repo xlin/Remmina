@@ -598,8 +598,8 @@ void remmina_main_on_action_connection_connect(GtkAction *action, gpointer user_
 		return;
 
 	remmina_file_touch(remminafile);
-	// remmina_connection_window_open_from_filename(remminamain->priv->selected_filename);
-	remmina_mpchange_schedule(remminafile, TRUE, "giovanni", "PFM.It", "pippo");
+	remmina_connection_window_open_from_filename(remminamain->priv->selected_filename);
+	// remmina_mpchange_schedule(remminafile, TRUE, "giovanni", "PFM.It", "pippo");
 
 	remmina_file_free(remminafile);
 }

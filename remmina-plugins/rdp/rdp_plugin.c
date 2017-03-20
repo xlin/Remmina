@@ -589,7 +589,7 @@ static BOOL remmina_rdp_authenticate(freerdp* instance, char** username, char** 
 			remmina_plugin_service->file_set_string( remminafile, "username", s_username );
 			remmina_plugin_service->file_set_string( remminafile, "password", s_password );
 			remmina_plugin_service->file_set_string( remminafile, "domain", s_domain );
-			remmina_plugin_service->mpchange_schedule( remminafile, TRUE, s_username, s_password, s_domain );
+			remmina_plugin_service->mpchange_schedule( remminafile, TRUE, s_username, s_domain, s_password );
 
 		}
 
