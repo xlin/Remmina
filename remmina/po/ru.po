@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: remmina\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2016-12-22 00:45+0100\n"
-"PO-Revision-Date: 2013-01-29 15:16+0000\n"
+"PO-Revision-Date: 2017-04-16 16:07+0300\n"
 "Last-Translator: Antenore Gatta <antenore@simbiosi.org>\n"
 "Language-Team: Russian <ru@li.org>\n"
 "Language: ru\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 "X-Launchpad-Export-Date: 2014-04-10 15:03+0000\n"
-"X-Generator: Launchpad (build 16976)\n"
+"X-Generator: Poedit 1.8.12\n"
 
 #: remmina-plugins/spice/spice_plugin_usb.c:51
 #: remmina-plugins/spice/spice_plugin.c:466
@@ -133,7 +133,7 @@ msgstr "Передача завершена"
 #: remmina-plugins/spice/spice_plugin_file_transfer.c:232
 #, c-format
 msgid "File %s transfered successfully"
-msgstr "Файлы успешно переданы"
+msgstr "Файлы  %s успешно переданы"
 
 #: remmina-plugins/telepathy/telepathy_plugin.c:57
 msgid "Telepathy - Desktop Sharing"
@@ -317,7 +317,7 @@ msgid ""
 "Authentication to RDP server %s failed.\n"
 "Check username, password and domain."
 msgstr ""
-"Аутентификация на сервере RDP% S не удалось. \n"
+"Аутентификация на сервере RDP %s не удалась.\n"
 "Проверьте имя пользователя, пароль и домен"
 
 #: remmina-plugins/rdp/rdp_plugin.c:1080
@@ -1971,4 +1971,3 @@ msgstr "Действия"
 #: remmina/ui/remmina_main.glade:673
 msgid "Last time used"
 msgstr "Последний раз использовано"
-
